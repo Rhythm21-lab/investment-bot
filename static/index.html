@@ -1,20 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Investment Chatbot</title>
+
   <style>
-    body { font-family: Arial; background: #f5f5f5; }
-    #chat { width: 600px; margin: auto; background: white; padding: 15px; }
-    .bot { color: blue; margin: 8px 0; }
-    .user { color: green; margin: 8px 0; text-align: right; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Main chat container */
+    .chat-wrapper {
+      max-width: 900px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      height: 85vh;
+    }
+
+    /* Header */
+    .chat-header {
+      padding: 15px;
+      background: #2563eb;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 10px 10px 0 0;
+    }
+
+    /* Chat messages */
+    #chat {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Bot bubble */
+    .bot {
+      align-self: flex-start;
+      background: #eef2ff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 75%;
+      color: #1e3a8a;
+    }
+
+    /* User bubble */
+    .user {
+      align-self: flex-end;
+      background: #dcfce7;
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 60%;
+      color: #166534;
+      text-align: right;
+    }
+
+    /* Input area */
+    .input-area {
+      display: flex;
+      gap: 10px;
+      padding: 15px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .input-area button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .input-area button:hover {
+      background: #1e40af;
+    }
   </style>
 </head>
+
 <body>
 
-<div id="chat"></div>
+<div class="chat-wrapper">
+  <div class="chat-header">📊 Investment Planning Chatbot</div>
 
-<input id="input" placeholder="Type here..." style="width: 520px;">
-<button onclick="send()">Send</button>
+  <div id="chat"></div>
+
+  <div class="input-area">
+    <input id="input" placeholder="Type here..." onkeydown="if(event.key==='Enter') send()" />
+    <button onclick="send()">Send</button>
+  </div>
+</div>
 
 <script>
 let step = 0;
@@ -22,12 +116,18 @@ let data = {};
 
 const chat = document.getElementById("chat");
 
+function scrollBottom() {
+  chat.scrollTop = chat.scrollHeight;
+}
+
 function bot(msg) {
   chat.innerHTML += `<div class="bot">🤖 ${msg}</div>`;
+  scrollBottom();
 }
 
 function user(msg) {
   chat.innerHTML += `<div class="user">🧑 ${msg}</div>`;
+  scrollBottom();
 }
 
 bot("What is your monthly investment amount (₹)?");
@@ -64,7 +164,7 @@ async function send() {
     case 4:
       data.gold_pct = Number(value) / 100;
       if (Math.round((data.equity_pct + data.debt_pct + data.gold_pct) * 100) !== 100) {
-        bot("❌ Allocation must sum to 100%. Start again.");
+        bot("❌ Allocation must sum to 100%. Starting again.");
         step = -1;
         data = {};
         bot("What is your monthly investment amount (₹)?");
@@ -102,24 +202,21 @@ async function calculate() {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      bot("❌ API Error: " + errorText);
-      console.error("API error:", errorText);
+      bot("❌ API Error occurred.");
       return;
     }
 
     const result = await response.json();
 
-    bot(`📊 Equity Corpus: ₹${(result.equity_corpus / 100000).toFixed(2)} L`);
-    bot(`📊 Debt Corpus: ₹${(result.debt_corpus / 100000).toFixed(2)} L`);
-    bot(`📊 Gold Corpus: ₹${(result.gold_corpus / 100000).toFixed(2)} L`);
+    bot(`📈 Equity Corpus: ₹${(result.equity_corpus / 100000).toFixed(2)} L`);
+    bot(`📉 Debt Corpus: ₹${(result.debt_corpus / 100000).toFixed(2)} L`);
+    bot(`🟡 Gold Corpus: ₹${(result.gold_corpus / 100000).toFixed(2)} L`);
     bot(`💰 Total Corpus: ₹${(result.total_corpus / 10000000).toFixed(2)} Cr`);
-
     bot("✅ Calculation completed successfully!");
 
   } catch (error) {
-    bot("❌ Network error. Check console.");
-    console.error("Fetch failed:", error);
+    bot("❌ Network error. Please try again.");
+    console.error(error);
   }
 }
 </script>
