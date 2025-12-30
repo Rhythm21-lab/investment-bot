@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Investment Chatbot</title>
+  <style>
+    body { font-family: Arial; background: #f5f5f5; }
+    #chat { width: 600px; margin: auto; background: white; padding: 15px; }
+    .bot { color: blue; margin: 8px 0; }
+    .user { color: green; margin: 8px 0; text-align: right; }
+  </style>
+</head>
+<body>
+
+<div id="chat"></div>
+
+<input id="input" placeholder="Type here..." style="width: 520px;">
+<button onclick="send()">Send</button>
+
+<script>
+let step = 0;
+let data = {};
+
+const chat = document.getElementById("chat");
+
+function bot(msg) {
+  chat.innerHTML += `<div class="bot">🤖 ${msg}</div>`;
+}
+
+function user(msg) {
+  chat.innerHTML += `<div class="user">🧑 ${msg}</div>`;
+}
+
+bot("What is your monthly investment amount (₹)?");
+
+async function send() {
+  const input = document.getElementById("input");
+  const value = input.value.trim();
+  if (!value) return;
+
+  user(value);
+  input.value = "";
+
+  switch (step) {
+    case 0:
+      data.monthly_investment = Number(value);
+      bot("Expected annual increment (%)?");
+      break;
+
+    case 1:
+      data.annual_increment = Number(value);
+      bot("Equity allocation (%)?");
+      break;
+
+    case 2:
+      data.equity_pct = Number(value) / 100;
+      bot("Debt allocation (%)?");
+      break;
+
+    case 3:
+      data.debt_pct = Number(value) / 100;
+      bot("Gold allocation (%)?");
+      break;
+
+    case 4:
+      data.gold_pct = Number(value) / 100;
+      if (Math.round((data.equity_pct + data.debt_pct + data.gold_pct) * 100) !== 100) {
+        bot("❌ Allocation must sum to 100%. Start again.");
+        step = -1;
+        data = {};
+        bot("What is your monthly investment amount (₹)?");
+      } else {
+        bot("Expected Equity return (%)?");
+      }
+      break;
+
+    case 5:
+      data.equity_return = Number(value);
+      bot("Expected Debt return (%)?");
+      break;
+
+    case 6:
+      data.debt_return = Number(value);
+      bot("Expected Gold return (%)?");
+      break;
+
+    case 7:
+      data.gold_return = Number(value);
+      bot("Calculating your 20-year corpus...");
+      await calculate();
+      return;
+  }
+
+  step++;
+}
+
+async function calculate() {
+  try {
+    const response = await fetch("/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      bot("❌ API Error: " + errorText);
+      console.error("API error:", errorText);
+      return;
+    }
+
+    const result = await response.json();
+
+    bot(`📊 Equity Corpus: ₹${(result.equity_corpus / 100000).toFixed(2)} L`);
+    bot(`📊 Debt Corpus: ₹${(result.debt_corpus / 100000).toFixed(2)} L`);
+    bot(`📊 Gold Corpus: ₹${(result.gold_corpus / 100000).toFixed(2)} L`);
+    bot(`💰 Total Corpus: ₹${(result.total_corpus / 10000000).toFixed(2)} Cr`);
+
+    bot("✅ Calculation completed successfully!");
+
+  } catch (error) {
+    bot("❌ Network error. Check console.");
+    console.error("Fetch failed:", error);
+  }
+}
+</script>
+
+</body>
+</html>
